@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Verkstadsloggen.Application.Interfaces;
+using Verkstadsloggen.Application;
+using Verkstadsloggen.Application.Interface.Service;
 using Verkstadsloggen.Domain.Enum;
 using Verkstadsloggen.Domain.Models;
 using Verkstadsloggen.Infrastructure.Identity;
@@ -11,41 +12,31 @@ namespace Verkstadsloggen.UI.Pages;
 [Authorize]
 public class DashboardModel : PageModel
 {
-    private readonly IJobRepository _jobRepository;
+    private readonly IJobService _jobService;
+    private readonly IMechanicService _mechanicService;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public DashboardModel(IJobRepository jobRepository, UserManager<ApplicationUser> userManager)
+    public DashboardModel(IJobService jobService, IMechanicService mechanicService, UserManager<ApplicationUser> userManager)
     {
-        _jobRepository = jobRepository;
+        _jobService = jobService;
+        _mechanicService = mechanicService;
         _userManager = userManager;
-    }
-
-    public record MechanicLoad(string Name, int NotStarted, int InProgress, int Completed)
-    {
-        public int Total => NotStarted + InProgress + Completed;
     }
 
     public List<Job> Jobs { get; set; } = new();
     public List<Job> Latest { get; set; } = new();
-    public List<MechanicLoad> Loads { get; set; } = new();
+    public List<MechanicWorkload> Loads { get; set; } = new();
     public int NotStarted { get; set; }
     public int InProgress { get; set; }
     public int Completed { get; set; }
 
     public async Task OnGetAsync()
     {
-        var allJobs = await _jobRepository.GetAllJobsAsync();
+        var isAdmin = User.IsInRole("Admin");
+        var isMechanic = User.IsInRole("Mechanic");
+        var user = isMechanic ? await _userManager.GetUserAsync(User) : null;
 
-        if (User.IsInRole("Admin"))
-        {
-            Jobs = allJobs;
-        }
-        else if (User.IsInRole("Mechanic"))
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user?.PersonId != null)
-                Jobs = allJobs.Where(j => j.MechanicId == user.PersonId).ToList();
-        }
+        Jobs = await _jobService.GetJobsForUserAsync(isAdmin, isMechanic, user?.PersonId);
 
         NotStarted = Jobs.Count(j => j.Status == JobStatus.NotStarted);
         InProgress = Jobs.Count(j => j.Status == JobStatus.InProgress);
@@ -53,14 +44,9 @@ public class DashboardModel : PageModel
 
         Latest = Jobs.OrderByDescending(j => j.CreatedAt).Take(5).ToList();
 
-        Loads = Jobs
-            .GroupBy(j => j.Mechanic != null ? $"{j.Mechanic.FirstName} {j.Mechanic.LastName}" : "Ingen mekaniker")
-            .Select(g => new MechanicLoad(
-                g.Key,
-                g.Count(j => j.Status == JobStatus.NotStarted),
-                g.Count(j => j.Status == JobStatus.InProgress),
-                g.Count(j => j.Status == JobStatus.Completed)))
-            .OrderByDescending(l => l.Total)
-            .ToList();
+        var workload = await _mechanicService.GetMechanicWorkloadAsync();
+        Loads = isAdmin
+            ? workload
+            : workload.Where(w => w.MechanicId == user?.PersonId).ToList();
     }
 }

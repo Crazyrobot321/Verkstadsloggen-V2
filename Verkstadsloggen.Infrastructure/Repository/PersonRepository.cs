@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Verkstadsloggen.Application.Interfaces;
+using Verkstadsloggen.Application.Interface.Repository;
 using Verkstadsloggen.Domain.Models;
 using Verkstadsloggen.Infrastructure.Data;
 

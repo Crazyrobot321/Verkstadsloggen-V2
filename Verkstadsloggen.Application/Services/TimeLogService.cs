@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Verkstadsloggen.Application.Interface;
-using Verkstadsloggen.Application.Interfaces;
+﻿using Verkstadsloggen.Application.Interface.Repository;
+using Verkstadsloggen.Application.Interface.Service;
 using Verkstadsloggen.Domain.Models;
 
-namespace Verkstadsloggen.Application
+namespace Verkstadsloggen.Application.Services
 {
     public class TimeLogService : ITimeLogService
     {
@@ -18,12 +15,13 @@ namespace Verkstadsloggen.Application
 
         public async Task AddTimeLogAsync(Guid jobId, DateTime start, DateTime end, string description)
         {
+            ValidateTimes(start, end);
             var log = new TimeLog
             {
                 JobId = jobId,
                 StartTime = start,
                 EndTime = end,
-                Description = description
+                Description = description.Trim()
             };
 
             await _timeLogRepository.AddTimeLogAsync(log);
@@ -33,6 +31,12 @@ namespace Verkstadsloggen.Application
         {
             return await _timeLogRepository.GetLogsForJobAsync(jobId);
         }
+        public async Task<TimeSpan> GetTotalTimeForJobAsync(Guid jobId)
+        {
+            var logs = await _timeLogRepository.GetLogsForJobAsync(jobId);
+            TimeSpan totalTime = TimeSpan.Zero;
+            return TimeSpan.FromTicks(logs.Sum(log => (log.EndTime - log.StartTime).Ticks));
+        }
 
         public async Task<TimeLog?> GetLogByIdAsync(Guid id)
         {
@@ -41,12 +45,24 @@ namespace Verkstadsloggen.Application
 
         public async Task UpdateTimeLogAsync(TimeLog log)
         {
+            if (log.EndTime <= log.StartTime)
+            {
+                throw new ArgumentException("End time must be after start time.");
+            }
             await _timeLogRepository.UpdateTimeLogAsync(log);
         }
 
         public async Task DeleteTimeLogAsync(Guid id)
         {
             await _timeLogRepository.DeleteTimeLogAsync(id);
+        }
+
+        private static void ValidateTimes(DateTime start, DateTime end)
+        {
+            if (end <= start)
+            {
+                throw new ArgumentException("End time must be after start time.");
+            }
         }
     }
 }

@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Verkstadsloggen.Application.Interface;
-using Verkstadsloggen.Application.Interfaces;
+using Verkstadsloggen.Application.Interface.Service;
 using Verkstadsloggen.Domain.Enum;
 using Verkstadsloggen.Domain.Models;
 
@@ -11,12 +10,12 @@ namespace Verkstadsloggen.UI.Pages;
 [Authorize]
 public class JobDetails : PageModel
 {
-    private readonly IJobRepository _jobRepository;
+    private readonly IJobService _jobService;
     private readonly ITimeLogService _timeLogService;
 
-    public JobDetails(IJobRepository jobRepository, ITimeLogService timeLogService)
+    public JobDetails(IJobService jobService, ITimeLogService timeLogService)
     {
-        _jobRepository = jobRepository;
+        _jobService = jobService;
         _timeLogService = timeLogService;
     }
 
@@ -24,6 +23,7 @@ public class JobDetails : PageModel
 
     // TimeLogs list for UI
     public List<TimeLog> TimeLogs { get; set; } = new();
+    public TimeSpan TotalTime { get; set; }
 
     [BindProperty]
     public JobStatus NewStatus { get; set; }
@@ -43,23 +43,18 @@ public class JobDetails : PageModel
 
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
-        Job = await _jobRepository.GetJobByIdAsync(id);
-
-        if (Job == null)
+        if (!await LoadAsync(id))
         {
             return NotFound();
         }
 
-        // Load TimeLogs for UI
-        TimeLogs = await _timeLogService.GetLogsForJobAsync(id);
-
-        NewStatus = Job.Status;
+        NewStatus = Job!.Status;
         return Page();
     }
 
     public async Task<IActionResult> OnPostUpdateStatusAsync(Guid id)
     {
-        Job = await _jobRepository.GetJobByIdAsync(id);
+        Job = await _jobService.GetJobByIdAsync(id);
 
         if (Job == null)
         {
@@ -67,14 +62,14 @@ public class JobDetails : PageModel
         }
 
         Job.Status = NewStatus;
-        await _jobRepository.UpdateJobByIdAsync(Job);
+        await _jobService.UpdateJobAsync(Job);
 
         return RedirectToPage("/Jobs");
     }
 
     public async Task<IActionResult> OnPostAddCommentAsync(Guid id)
     {
-        var job = await _jobRepository.GetJobByIdAsync(id);
+        var job = await _jobService.GetJobByIdAsync(id);
 
         if (job == null)
         {
@@ -92,7 +87,7 @@ public class JobDetails : PageModel
             JobId = job.Id
         };
 
-        await _jobRepository.AddCommentAsync(comment);
+        await _jobService.AddCommentAsync(comment);
 
         return RedirectToPage(new { id });
     }
@@ -103,7 +98,21 @@ public class JobDetails : PageModel
         // Prevent NULL description crash
         LogDescription ??= "";
 
-        await _timeLogService.AddTimeLogAsync(id, LogStart, LogEnd, LogDescription);
+        try
+        {
+            await _timeLogService.AddTimeLogAsync(id, LogStart, LogEnd, LogDescription);
+        }
+        catch (ArgumentException ex)
+        {
+            if (!await LoadAsync(id))
+            {
+                return NotFound();
+            }
+
+            NewStatus = Job!.Status;
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return Page();
+        }
 
         return RedirectToPage(new { id });
     }
@@ -113,5 +122,18 @@ public class JobDetails : PageModel
     {
         await _timeLogService.DeleteTimeLogAsync(logId);
         return RedirectToPage(new { id });
+    }
+
+    private async Task<bool> LoadAsync(Guid id)
+    {
+        Job = await _jobService.GetJobByIdAsync(id);
+        if (Job == null)
+        {
+            return false;
+        }
+
+        TimeLogs = await _timeLogService.GetLogsForJobAsync(id);
+        TotalTime = await _timeLogService.GetTotalTimeForJobAsync(id);
+        return true;
     }
 }

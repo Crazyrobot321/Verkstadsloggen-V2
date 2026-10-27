@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Verkstadsloggen.Application;
-using Verkstadsloggen.Application.Interface;
-using Verkstadsloggen.Application.Interfaces;
+using Verkstadsloggen.Application.Interface.Repository;
+using Verkstadsloggen.Application.Interface.Service;
+using Verkstadsloggen.Application.Services;
 using Verkstadsloggen.Infrastructure.Data;
 using Verkstadsloggen.Infrastructure.Identity;
 using Verkstadsloggen.Infrastructure.Repository;
@@ -20,6 +20,8 @@ namespace Verkstadsloggen.UI
             //Register the repositories with dependency injection
             builder.Services.AddScoped<IMechanicRepository, MechanicRepository>();
             builder.Services.AddScoped<IJobRepository, JobRepository>();
+            builder.Services.AddScoped<IJobService, JobService>();
+            builder.Services.AddScoped<IMechanicService, MechanicService>();
 
             builder.Services.AddScoped<ITimeLogRepository, TimeLogRepository>();
             builder.Services.AddScoped<ITimeLogService, TimeLogService>();

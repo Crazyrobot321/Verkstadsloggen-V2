@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Verkstadsloggen.Domain.Models;
 
-namespace Verkstadsloggen.Application.Interfaces
+namespace Verkstadsloggen.Application.Interface.Repository
 {
     public interface ITimeLogRepository
     {

@@ -48,6 +48,11 @@ namespace Verkstadsloggen.UI.Pages
         {
             await LoadAsync();
 
+            if (User.IsInRole("Admin") && MechanicId == null)
+            {
+                MechanicId = (await _mechanicService.GetLeastBusyMechanicAsync())?.Id;
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 jobs = jobs

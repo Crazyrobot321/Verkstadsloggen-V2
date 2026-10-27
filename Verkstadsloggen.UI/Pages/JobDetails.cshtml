@@ -60,6 +60,10 @@
 
             @if (Model.TimeLogs != null && Model.TimeLogs.Any())
             {
+                <p class="text-muted mb-2">
+                    Total time: @((int)Model.TotalTime.TotalHours) h @Model.TotalTime.Minutes min
+                </p>
+
                 <table class="table table-sm">
                     <thead>
                         <tr>
@@ -97,17 +101,19 @@
                     <h2 class="h6 text-muted text-uppercase">Add Time Log</h2>
 
                     <form method="post" asp-page-handler="AddTimeLog" asp-route-id="@job.Id">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label asp-for="LogStart" class="form-label">Start Time</label>
                                 <input asp-for="LogStart" type="datetime-local"
-                                       value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                                       value="@((Model.LogStart == default ? DateTime.Now : Model.LogStart).ToString("yyyy-MM-ddTHH:mm"))"
                                        class="form-control" />
                             </div>
                             <div class="col-md-6">
                                 <label asp-for="LogEnd" class="form-label">End Time</label>
                                 <input asp-for="LogEnd" type="datetime-local"
-                                       value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")"
+                                       value="@((Model.LogEnd == default ? DateTime.Now : Model.LogEnd).ToString("yyyy-MM-ddTHH:mm"))"
                                        class="form-control" />
                             </div>
                             <div class="col-12">

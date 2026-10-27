@@ -1,8 +1,8 @@
-﻿using Verkstadsloggen.Application.Interface;
-using Verkstadsloggen.Application.Interfaces;
+﻿using Verkstadsloggen.Application.Interface.Repository;
+using Verkstadsloggen.Application.Interface.Service;
 using Verkstadsloggen.Domain.Models;
 
-namespace Verkstadsloggen.Application
+namespace Verkstadsloggen.Application.Services
 {
     public class PersonService : IPersonService
     {
@@ -23,6 +23,11 @@ namespace Verkstadsloggen.Application
             return await _personRepository.GetAllPeopleAsync();
         }
 
+        public async Task<List<Customer>> GetAllCustomersAsync()
+        {
+            return await _personRepository.GetAllCustomersAsync();
+        }
+
         public async Task<Customer> CreateCustomerAsync(string firstName, string lastName, string email, string phoneNumber)
         {
             var customer = new Customer
@@ -35,6 +40,21 @@ namespace Verkstadsloggen.Application
 
             await _personRepository.AddPersonAsync(customer);
             return customer;
+        }
+
+        public async Task<Person> CreatePersonAsync(string personType, string firstName, string lastName, string email, string phoneNumber, string? address)
+        {
+            Person person = personType == "Customer"
+                ? new Customer { Address = address ?? string.Empty }
+                : new Mechanic();
+
+            person.FirstName = firstName;
+            person.LastName = lastName;
+            person.Email = email;
+            person.PhoneNumber = phoneNumber;
+
+            await _personRepository.AddPersonAsync(person);
+            return person;
         }
 
         public async Task<Person?> UpdateContactInfoAsync(Guid id, string firstName, string lastName, string email, string phoneNumber)

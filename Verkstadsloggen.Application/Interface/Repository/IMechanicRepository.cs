@@ -1,6 +1,6 @@
 ﻿using Verkstadsloggen.Domain.Models;
 
-namespace Verkstadsloggen.Application.Interfaces
+namespace Verkstadsloggen.Application.Interface.Repository
 {
     public interface IMechanicRepository
     {

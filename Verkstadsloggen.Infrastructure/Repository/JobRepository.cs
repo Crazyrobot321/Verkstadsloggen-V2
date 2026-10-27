@@ -5,7 +5,7 @@ using System.Text;
 using Verkstadsloggen.Domain.Enum;
 using Verkstadsloggen.Domain.Models;
 using Verkstadsloggen.Infrastructure.Data;
-using Verkstadsloggen.Application.Interfaces;
+using Verkstadsloggen.Application.Interface.Repository;
 
 namespace Verkstadsloggen.Infrastructure.Repository
 {

@@ -21,7 +21,7 @@ namespace Verkstadsloggen.Application.Services
                 JobId = jobId,
                 StartTime = start,
                 EndTime = end,
-                Description = description
+                Description = description.Trim()
             };
 
             await _timeLogRepository.AddTimeLogAsync(log);
@@ -45,6 +45,10 @@ namespace Verkstadsloggen.Application.Services
 
         public async Task UpdateTimeLogAsync(TimeLog log)
         {
+            if (log.EndTime <= log.StartTime)
+            {
+                throw new ArgumentException("End time must be after start time.");
+            }
             await _timeLogRepository.UpdateTimeLogAsync(log);
         }
 
@@ -55,7 +59,7 @@ namespace Verkstadsloggen.Application.Services
 
         private static void ValidateTimes(DateTime start, DateTime end)
         {
-            if(end <= start)
+            if (end <= start)
             {
                 throw new ArgumentException("End time must be after start time.");
             }

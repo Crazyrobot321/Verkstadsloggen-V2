@@ -5,5 +5,7 @@ namespace Verkstadsloggen.Application.Interface.Service
     public interface IMechanicService
     {
         Task<List<Mechanic>> GetAllMechanicsAsync();
+        Task<List<MechanicWorkload>> GetMechanicWorkloadAsync();
+        Task<Mechanic?> GetLeastBusyMechanicAsync();
     }
 }

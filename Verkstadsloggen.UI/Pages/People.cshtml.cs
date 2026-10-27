@@ -1,21 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using Verkstadsloggen.Domain.Models;
-using Verkstadsloggen.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Verkstadsloggen.Application.Interface.Service;
 
 namespace Verkstadsloggen.UI.Pages;
 
 [Authorize(Roles = "Admin")]
 public class PeopleModel : PageModel
 {
-    private readonly IPersonRepository _personRepository;
+    private readonly IPersonService _personService;
 
-    public PeopleModel(IPersonRepository personRepository)
+    public PeopleModel(IPersonService personService)
     {
-        _personRepository = personRepository;
+        _personService = personService;
     }
 
     public List<Person> People { get; set; } = new();
@@ -43,7 +42,7 @@ public class PeopleModel : PageModel
 
     public async Task OnGetAsync()
     {
-        People = await _personRepository.GetAllPeopleAsync();
+        People = await _personService.GetAllPeopleAsync();
     }
     public async Task<IActionResult> OnPostAsync()
     {
@@ -52,19 +51,11 @@ public class PeopleModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            People = await _personRepository.GetAllPeopleAsync();
+            People = await _personService.GetAllPeopleAsync();
             return Page();
         }
 
-        Person person = PersonType == "Customer"
-            ? new Customer { Address = Address ?? string.Empty }
-            : new Mechanic();
-        person.FirstName = FirstName;
-        person.LastName = LastName;
-        person.Email = Email;
-        person.PhoneNumber = PhoneNumber;
-
-        await _personRepository.AddPersonAsync(person);
+        await _personService.CreatePersonAsync(PersonType, FirstName, LastName, Email, PhoneNumber, Address);
 
         return RedirectToPage();
     }

@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
 using Verkstadsloggen.Domain.Models;
-using Verkstadsloggen.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Verkstadsloggen.Infrastructure.Identity;
+using Verkstadsloggen.Application.Interface.Service;
 
 namespace Verkstadsloggen.UI.Pages
 {
@@ -13,15 +13,15 @@ namespace Verkstadsloggen.UI.Pages
     public class JobsModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IJobRepository _jobRepository;
-        private readonly IMechanicRepository _mechanicRepository;
-        private readonly IPersonRepository _personRepository;
+        private readonly IJobService _jobService;
+        private readonly IMechanicService _mechanicService;
+        private readonly IPersonService _personService;
 
-        public JobsModel(IJobRepository jobRepository, IMechanicRepository mechanicRepository, IPersonRepository personRepository, UserManager<ApplicationUser> userManager)
+        public JobsModel(IJobService jobService, IMechanicService mechanicService, IPersonService personService, UserManager<ApplicationUser> userManager)
         {
-            _jobRepository = jobRepository;
-            _mechanicRepository = mechanicRepository;
-            _personRepository = personRepository;
+            _jobService = jobService;
+            _mechanicService = mechanicService;
+            _personService = personService;
             _userManager = userManager;
         }
 
@@ -82,28 +82,20 @@ namespace Verkstadsloggen.UI.Pages
                 LicensePlate = LicensePlate,
             };
 
-            await _jobRepository.AddJobAsync(job);
+            await _jobService.CreateJobAsync(job);
             return RedirectToPage();
         }
 
         private async Task LoadAsync()
         {
-            var allJobs = await _jobRepository.GetAllJobsAsync();
+            var isAdmin = User.IsInRole("Admin");
+            var isMechanic = User.IsInRole("Mechanic");
+            var user = isMechanic ? await _userManager.GetUserAsync(User) : null;
 
-            if (User.IsInRole("Admin"))
-            {
-                jobs = allJobs;
-            }
-            else if (User.IsInRole("Mechanic"))
-            {
-                var user = await _userManager.GetUserAsync(User);
-                jobs = user?.PersonId is null //check if the user has a PersonId, if not return an empty list 
-                    ? new List<Job>()
-                    : allJobs.Where(j => j.MechanicId == user.PersonId).ToList();
-            }
+            jobs = await _jobService.GetJobsForUserAsync(isAdmin, isMechanic, user?.PersonId);
 
-            mechanics = await _mechanicRepository.GetAllMechanicsAsync();
-            customers = await _personRepository.GetAllCustomersAsync();
+            mechanics = await _mechanicService.GetAllMechanicsAsync();
+            customers = await _personService.GetAllCustomersAsync();
         }
     }
 }
